@@ -10,26 +10,11 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+
+	"algogrit.com/empserver/entities"
 )
 
-type Employee struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	Department string `json:"speciality"`
-	ProjectID  int    `json:"-"`
-}
-
-// func (e Employee) MarshalJSON() ([]byte, error) {
-// 	jsonString := fmt.Sprintf(`{
-// 		"id": %d,
-// 		"name": "%s",
-// 		"speciality": "%s",
-// 	}`, e.ID, e.Name, e.Department)
-
-// 	return []byte(jsonString), nil
-// }
-
-var employees = []Employee{
+var employees = []entities.Employee{
 	{1, "Gaurav", "LnD", 1001},
 	{2, "Lakki", "Cloud", 2001},
 	{3, "Muthu", "SRE", 10001},
@@ -41,7 +26,7 @@ func EmployeesIndexHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func EmployeeCreateHandler(w http.ResponseWriter, req *http.Request) {
-	var newEmp Employee
+	var newEmp entities.Employee
 	err := json.NewDecoder(req.Body).Decode(&newEmp)
 
 	if err != nil {
@@ -56,14 +41,6 @@ func EmployeeCreateHandler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(newEmp)
 }
-
-// func EmployeesHandler(w http.ResponseWriter, req *http.Request) {
-// 	if req.Method == "POST" {
-// 		EmployeeCreateHandler(w, req)
-// 	} else {
-// 		EmployeesIndexHandler(w, req)
-// 	}
-// }
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	h := func(w http.ResponseWriter, req *http.Request) {
@@ -80,20 +57,16 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	// r := http.NewServeMux()
 	r := mux.NewRouter()
 
 	r.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
 		msg := "Hello, World!"
-		// w.Write([]byte(msg))
 
 		fmt.Fprintln(w, msg)
 	}).Methods("GET")
 
 	r.HandleFunc("/employees", EmployeesIndexHandler).Methods("GET")
 	r.HandleFunc("/employees", EmployeeCreateHandler).Methods("POST")
-	// r.HandleFunc("/employees", EmployeesHandler)
 
-	// http.ListenAndServe(":8000", LoggingMiddleware(r))
 	http.ListenAndServe(":8000", handlers.LoggingHandler(os.Stdout, r))
 }
