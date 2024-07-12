@@ -12,15 +12,21 @@ import (
 	"github.com/gorilla/mux"
 
 	"algogrit.com/empserver/entities"
+
+	"algogrit.com/empserver/employee/repository"
 )
 
-var employees = []entities.Employee{
-	{1, "Gaurav", "LnD", 1001},
-	{2, "Lakki", "Cloud", 2001},
-	{3, "Muthu", "SRE", 10001},
-}
+var empRepo = repository.NewInMemRepository()
 
 func EmployeesIndexHandler(w http.ResponseWriter, req *http.Request) {
+	employees, err := empRepo.ListAll()
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, err)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(employees)
 }
@@ -35,11 +41,16 @@ func EmployeeCreateHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	newEmp.ID = len(employees) + 1
-	employees = append(employees, newEmp)
+	createdEmp, err := empRepo.Save(newEmp)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError) // May be an application error => Validations
+		fmt.Fprintln(w, err)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(newEmp)
+	json.NewEncoder(w).Encode(createdEmp)
 }
 
 func LoggingMiddleware(next http.Handler) http.Handler {
@@ -67,6 +78,8 @@ func main() {
 
 	r.HandleFunc("/employees", EmployeesIndexHandler).Methods("GET")
 	r.HandleFunc("/employees", EmployeeCreateHandler).Methods("POST")
+
+	log.Println("Starting server on port: 8000...")
 
 	http.ListenAndServe(":8000", handlers.LoggingHandler(os.Stdout, r))
 }
